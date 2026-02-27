@@ -1,1 +1,1 @@
-# mumble-server-helm-chart
+# Mumble Server Helm Chart
