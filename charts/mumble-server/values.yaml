@@ -159,3 +159,22 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# See: https://github.com/mumble-voip/mumble/blob/master/auxiliary_files/mumble-server.ini
+config:
+  port: 64738
+  users: 100
+  messageBurst: 5
+  messageLimit: 1
+  allowPing: "true"
+  welcomeText: "<br />Welcome to this server running <b>Mumble</b>.<br />Enjoy your stay!<br />"
+  serverPassword: "bigsecret"
+  superUserPassword: "supersecret"
+  # database driver options: mysql, postgresql
+  databaseDriver: "postgresql"
+  databaseUsername: "mumble"
+  databasePassword: "verysecret"
+  databaseHost: ""
+  databasePort: ""
+  # Name of an existing secret containing serverPassword, superUserPassword and databasePassword
+  existingSecret: ""
