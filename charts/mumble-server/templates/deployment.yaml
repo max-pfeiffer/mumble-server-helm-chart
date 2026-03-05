@@ -47,38 +47,45 @@ spec:
               containerPort: {{ .Values.config.port }}
               protocol: UDP
           env:
-            # Server config
             - name: MUMBLE_CONFIG_DATABASE
-              value: "{{ .Values.config.database }}"
+              value: "{{ .Values.config.databaseName }}"
             - name: MUMBLE_CONFIG_DB_DRIVER
-              value: "{{ .Values.config.dbDriver }}"
+              value: "{{ .Values.config.databaseDriver }}"
             - name: MUMBLE_CONFIG_DB_USERNAME
-              value: "{{ .Values.config.dbUsername }}"
+              value: "{{ .Values.config.databaseUsername }}"
             - name: MUMBLE_CONFIG_DB_PASSWORD
-              value: "{{ .Values.config.dbPassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: databasePassword
             - name: MUMBLE_CONFIG_DB_HOST
-              value: "{{ .Values.config.dbHost }}"
+              value: "{{ .Values.config.databaseHost }}"
             - name: MUMBLE_CONFIG_DB_PORT
-              value: "{{ .Values.config.dbPort }}"
+              value: "{{ .Values.config.databasePort }}"
             - name: MUMBLE_CONFIG_WELCOME_TEXT
-              value: "{{ .Values.config.welcometext }}"
+              value: "{{ .Values.config.welcomeText }}"
             - name: MUMBLE_CONFIG_PORT
               value: "{{ .Values.config.port }}"
             - name: MUMBLE_CONFIG_SERVER_PASSWORD
-              value: "{{ .Values.config.serverpassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: serverPassword
             - name: MUMBLE_CONFIG_BANDWIDTH
               value: "{{ .Values.config.bandwidth }}"
             - name: MUMBLE_CONFIG_USERS
               value: "{{ .Values.config.users }}"
             - name: MUMBLE_CONFIG_MESSAGE_BURST
-              value: "{{ .Values.config.messageburst }}"
+              value: "{{ .Values.config.messageBurst }}"
             - name: MUMBLE_CONFIG_MESSAGE_LIMIT
-              value: "{{ .Values.config.messagelimit }}"
+              value: "{{ .Values.config.messageLimit }}"
             - name: MUMBLE_CONFIG_ALLOW_PING
-              value: "{{ .Values.config.allowping }}"
-            # Docker image config
+              value: "{{ .Values.config.allowPing }}"
             - name: MUMBLE_SUPERUSER_PASSWORD
-              value: "{{ .Values.config.superuserpassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: superUserPassword
             - name: MUMBLE_VERBOSE
               value: "true"
           livenessProbe:
