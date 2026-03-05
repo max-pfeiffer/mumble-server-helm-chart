@@ -27,7 +27,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "mumble-server.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -41,17 +40,53 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
+            - name: mumble-tcp
+              containerPort: {{ .Values.config.port }}
               protocol: TCP
-          {{- with .Values.livenessProbe }}
+            - name: mumble-udp
+              containerPort: {{ .Values.config.port }}
+              protocol: UDP
+          env:
+            # Server config
+            - name: MUMBLE_CONFIG_DATABASE
+              value: "{{ .Values.config.database }}"
+            - name: MUMBLE_CONFIG_DB_DRIVER
+              value: "{{ .Values.config.dbDriver }}"
+            - name: MUMBLE_CONFIG_DB_USERNAME
+              value: "{{ .Values.config.dbUsername }}"
+            - name: MUMBLE_CONFIG_DB_PASSWORD
+              value: "{{ .Values.config.dbPassword }}"
+            - name: MUMBLE_CONFIG_DB_HOST
+              value: "{{ .Values.config.dbHost }}"
+            - name: MUMBLE_CONFIG_DB_PORT
+              value: "{{ .Values.config.dbPort }}"
+            - name: MUMBLE_CONFIG_WELCOME_TEXT
+              value: "{{ .Values.config.welcometext }}"
+            - name: MUMBLE_CONFIG_PORT
+              value: "{{ .Values.config.port }}"
+            - name: MUMBLE_CONFIG_SERVER_PASSWORD
+              value: "{{ .Values.config.serverpassword }}"
+            - name: MUMBLE_CONFIG_BANDWIDTH
+              value: "{{ .Values.config.bandwidth }}"
+            - name: MUMBLE_CONFIG_USERS
+              value: "{{ .Values.config.users }}"
+            - name: MUMBLE_CONFIG_MESSAGE_BURST
+              value: "{{ .Values.config.messageburst }}"
+            - name: MUMBLE_CONFIG_MESSAGE_LIMIT
+              value: "{{ .Values.config.messagelimit }}"
+            - name: MUMBLE_CONFIG_ALLOW_PING
+              value: "{{ .Values.config.allowping }}"
+            # Docker image config
+            - name: MUMBLE_SUPERUSER_PASSWORD
+              value: "{{ .Values.config.superuserpassword }}"
+            - name: MUMBLE_VERBOSE
+              value: "true"
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
+            tcpSocket:
+              port: mumble-tcp
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            tcpSocket:
+              port: mumble-tcp
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
