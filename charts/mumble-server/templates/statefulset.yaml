@@ -1,13 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "mumble-server.fullname" . }}
   labels:
     {{- include "mumble-server.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  serviceName: {{ include "mumble-server.fullname" . }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "mumble-server.selectorLabels" . | nindent 6 }}
@@ -31,6 +30,16 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: adjust-volume-file-permissions
+          image: alpine:3.23
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "chown -R 10000:10000 /data"
+          volumeMounts:
+            - name: data
+              mountPath: "/data"
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -47,21 +56,8 @@ spec:
               containerPort: {{ .Values.config.port }}
               protocol: UDP
           env:
-            - name: MUMBLE_CONFIG_DATABASE
-              value: "{{ .Values.config.databaseName }}"
             - name: MUMBLE_CONFIG_DB_DRIVER
-              value: "{{ .Values.config.databaseDriver }}"
-            - name: MUMBLE_CONFIG_DB_USERNAME
-              value: "{{ .Values.config.databaseUsername }}"
-            - name: MUMBLE_CONFIG_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
-                  key: databasePassword
-            - name: MUMBLE_CONFIG_DB_HOST
-              value: "{{ .Values.config.databaseHost }}"
-            - name: MUMBLE_CONFIG_DB_PORT
-              value: "{{ .Values.config.databasePort }}"
+              value: "QSQLITE"
             - name: MUMBLE_CONFIG_WELCOME_TEXT
               value: "{{ .Values.config.welcomeText }}"
             - name: MUMBLE_CONFIG_PORT
@@ -87,7 +83,9 @@ spec:
                   name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
                   key: superUserPassword
             - name: MUMBLE_VERBOSE
-              value: "true"
+              value: "{{ .Values.config.verboseLogging }}"
+            - name: MUMBLE_CHOWN_DATA
+              value: "false"
           livenessProbe:
             tcpSocket:
               port: mumble-tcp
@@ -98,14 +96,24 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            - name: data
+              mountPath: "/data"
+          {{- if or (eq .Values.tlsCertificate.existingSecret.use true) (eq .Values.tlsCertificate.certManager.create true)  }}
+            - name: tls-certificate
+              mountPath: "/mumble/ssl"
           {{- end }}
-      {{- with .Values.volumes }}
+      {{ if .Values.tlsCertificate.existingSecret.use }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: tls-certificate
+          secret:
+            secretName: {{ .Values.tlsCertificate.existingSecret }}
+      {{ else if .Values.tlsCertificate.certManager.create }}
+      volumes:
+        - name: tls-certificate
+          secret:
+            secretName: {{ include "mumble-server.fullname" . }}-tls
+      {{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -118,3 +126,12 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: {{ .Values.config.volumeStorageSize }}

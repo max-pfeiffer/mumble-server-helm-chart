@@ -2,9 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-replicaCount: 1
-
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: mumblevoip/mumble-server
@@ -26,16 +23,18 @@ podAnnotations: {}
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 10000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10000
+  runAsGroup: 10000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
@@ -43,6 +42,9 @@ service:
   type: LoadBalancer
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 64738
+  metadata:
+    labels: {}
+    annotations: {}
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -55,14 +57,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
 volumes: []
@@ -83,24 +77,22 @@ tolerations: []
 
 affinity: {}
 
+# Creating a cert-manager and using an existing secret are mutually exclusive
 tlsCertificate:
+  # Create a Certificate and Secret using cert-manager
   certManager:
     create: false
     issuerRef:
       name: ""
       kind: ""
     dnsNames: []
+  # Use an existing secret with TLS certificate data, needs to have
+  existingSecret:
+    use: false
+    name: ""
 
 # See: https://github.com/mumble-voip/mumble/blob/master/auxiliary_files/mumble-server.ini
 config:
-  # Database settings
-  # Only QMYSQL (MySQL) and QPSQL (PostgreSQL) are supported as database driver
-  databaseDriver: "QPSQL"
-  databaseName: "mumble"
-  databaseUsername: "mumble"
-  databasePassword: "verysecret"
-  databaseHost: "mumble.db"
-  databasePort: "5432"
   # Server configuration
   welcomeText: "Hello!"
   port: "64738"
@@ -116,3 +108,4 @@ config:
   # Name of an existing secret containing databasePassword, serverPassword and superUserPassword.
   # If this is set, databasePassword, serverPassword and superUserPassword in values.yaml will be ignored.
   existingSecret: ""
+  volumeStorageSize: 1Gi
