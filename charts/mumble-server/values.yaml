@@ -77,16 +77,16 @@ tolerations: []
 
 affinity: {}
 
-# Creating a cert-manager and using an existing secret are mutually exclusive
+# Creating a TLS certificate with cert-manager and using an existing TLS secret are mutually exclusive
 tlsCertificate:
-  # Create a Certificate and Secret using cert-manager
+  # Create a TLS certificate and Secret using cert-manager
   certManager:
     create: false
     issuerRef:
       name: ""
       kind: ""
     dnsNames: []
-  # Use an existing secret with TLS certificate data, needs to have
+  # Use an existing Secret with TLS certificate data, needs to have tls.crt and tls.key in data.
   existingSecret:
     use: false
     name: ""

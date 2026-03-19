@@ -77,6 +77,12 @@ spec:
               value: "{{ .Values.config.messageLimit }}"
             - name: MUMBLE_CONFIG_ALLOW_PING
               value: "{{ .Values.config.allowPing }}"
+            {{- if or (eq .Values.tlsCertificate.existingSecret.use true) (eq .Values.tlsCertificate.certManager.create true)  }}
+            - name: MUMBLE_CONFIG_SSL_CERT
+              value: "/mumble/ssl/tls.crt"
+            - name: MUMBLE_CONFIG_SSL_KEY
+              value: "/mumble/ssl/tls.key"
+            {{- end }}
             - name: MUMBLE_SUPERUSER_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -107,7 +113,7 @@ spec:
       volumes:
         - name: tls-certificate
           secret:
-            secretName: {{ .Values.tlsCertificate.existingSecret }}
+            secretName: {{ .Values.tlsCertificate.existingSecret.name }}
       {{ else if .Values.tlsCertificate.certManager.create }}
       volumes:
         - name: tls-certificate
