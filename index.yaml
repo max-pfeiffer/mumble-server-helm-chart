@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  mumble-server:
+  - apiVersion: v2
+    appVersion: v1.5.857
+    created: "2026-03-19T08:07:46.929408374Z"
+    description: A Helm chart for Kubernetes
+    digest: 337f1fe1eced60bd29de210ba9725fe0849ac0cbc685f4713facb83790827274
+    name: mumble-server
+    type: application
+    urls:
+    - https://github.com/max-pfeiffer/mumble-server-helm-chart/releases/download/mumble-server-0.1.0/mumble-server-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-03-19T08:07:46.929429094Z"
