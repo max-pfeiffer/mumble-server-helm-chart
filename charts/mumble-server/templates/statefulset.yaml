@@ -77,6 +77,19 @@ spec:
               value: "{{ .Values.config.messageLimit }}"
             - name: MUMBLE_CONFIG_ALLOW_PING
               value: "{{ .Values.config.allowPing }}"
+            - name: MUMBLE_CONFIG_REGISTER_NAME
+              value: "{{ .Values.config.registerName }}"
+            - name: MUMBLE_CONFIG_REGISTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: registerPassword
+            - name: MUMBLE_CONFIG_REGISTER_URL
+              value: "{{ .Values.config.registerUrl }}"
+            - name: MUMBLE_CONFIG_REGISTER_HOSTNAME
+              value: "{{ .Values.config.registerHostname }}"
+            - name: MUMBLE_CONFIG_REGISTER_LOCATION
+              value: "{{ .Values.config.registerLocation }}"
             {{- if or (eq .Values.tlsCertificate.existingSecret.use true) (eq .Values.tlsCertificate.certManager.create true)  }}
             - name: MUMBLE_CONFIG_SSL_CERT
               value: "/mumble/ssl/tls.crt"
