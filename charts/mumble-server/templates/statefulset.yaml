@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "mumble-server.fullname" . }}
+  labels:
+    {{- include "mumble-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "mumble-server.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "mumble-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mumble-server.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: adjust-volume-file-permissions
+          image: alpine:3.23
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "chown -R 10000:10000 /data"
+          volumeMounts:
+            - name: data
+              mountPath: "/data"
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: mumble-tcp
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+            - name: mumble-udp
+              containerPort: {{ .Values.config.port }}
+              protocol: UDP
+          env:
+            - name: MUMBLE_CONFIG_DB_DRIVER
+              value: "QSQLITE"
+            - name: MUMBLE_CONFIG_WELCOME_TEXT
+              value: "{{ .Values.config.welcomeText }}"
+            - name: MUMBLE_CONFIG_PORT
+              value: "{{ .Values.config.port }}"
+            - name: MUMBLE_CONFIG_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: serverPassword
+            - name: MUMBLE_CONFIG_BANDWIDTH
+              value: "{{ .Values.config.bandwidth }}"
+            - name: MUMBLE_CONFIG_USERS
+              value: "{{ .Values.config.users }}"
+            - name: MUMBLE_CONFIG_MESSAGE_BURST
+              value: "{{ .Values.config.messageBurst }}"
+            - name: MUMBLE_CONFIG_MESSAGE_LIMIT
+              value: "{{ .Values.config.messageLimit }}"
+            - name: MUMBLE_CONFIG_ALLOW_PING
+              value: "{{ .Values.config.allowPing }}"
+            {{- if or (eq .Values.tlsCertificate.existingSecret.use true) (eq .Values.tlsCertificate.certManager.create true)  }}
+            - name: MUMBLE_CONFIG_SSL_CERT
+              value: "/mumble/ssl/tls.crt"
+            - name: MUMBLE_CONFIG_SSL_KEY
+              value: "/mumble/ssl/tls.key"
+            {{- end }}
+            - name: MUMBLE_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.existingSecret | default (include "mumble-server.fullname" .) }}
+                  key: superUserPassword
+            - name: MUMBLE_VERBOSE
+              value: "{{ .Values.config.verboseLogging }}"
+            - name: MUMBLE_CHOWN_DATA
+              value: "false"
+          livenessProbe:
+            tcpSocket:
+              port: mumble-tcp
+          readinessProbe:
+            tcpSocket:
+              port: mumble-tcp
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: "/data"
+          {{- if or (eq .Values.tlsCertificate.existingSecret.use true) (eq .Values.tlsCertificate.certManager.create true)  }}
+            - name: tls-certificate
+              mountPath: "/mumble/ssl"
+          {{- end }}
+      {{ if .Values.tlsCertificate.existingSecret.use }}
+      volumes:
+        - name: tls-certificate
+          secret:
+            secretName: {{ .Values.tlsCertificate.existingSecret.name }}
+      {{ else if .Values.tlsCertificate.certManager.create }}
+      volumes:
+        - name: tls-certificate
+          secret:
+            secretName: {{ include "mumble-server.fullname" . }}-tls
+      {{ end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: {{ .Values.config.volumeStorageSize }}

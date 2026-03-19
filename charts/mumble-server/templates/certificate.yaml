@@ -1,0 +1,15 @@
+{{ if .Values.tlsCertificate.certManager.create }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "mumble-server.fullname" . }}
+spec:
+  secretName: {{ include "mumble-server.fullname" . }}-tls
+  issuerRef:
+    name: {{ .Values.tlsCertificate.certManager.issuerRef.name }}
+    kind: {{ .Values.tlsCertificate.certManager.issuerRef.kind }}
+  {{- with .Values.tlsCertificate.certManager.dnsNames }}
+  dnsNames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
