@@ -105,7 +105,14 @@ config:
   # Docker image specific configuration
   superUserPassword: "extremelysecret"
   verboseLogging: "false"
-  # Name of an existing secret containing databasePassword, serverPassword and superUserPassword.
+  # Public server registration: to enable public server registration, the serverpassword must be blank, and
+  # this must all be filled out.
+  registerName: ""
+  registerPassword: ""
+  registerUrl: ""
+  registerHostname: ""
+  registerLocation: ""
+  # Name of an existing secret containing serverPassword, superUserPassword and registerPassword.
   # If this is set, databasePassword, serverPassword and superUserPassword in values.yaml will be ignored.
   existingSecret: ""
   volumeStorageSize: 1Gi
